@@ -1,0 +1,3 @@
+#define ADD(chi, alpha) { \
+  __asm__ __volatile__ ("add %[src], %[dest];" : [dest] "+r" (chi) : [src] "r" (alpha)); \
+};
