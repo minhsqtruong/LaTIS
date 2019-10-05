@@ -5,12 +5,20 @@ from latis import create_include
 from latis import create_header
 from latis import create_footer
 from latis import print_database
+from latis import interface, help, checkinput
+import pyfiglet
 import sys
+import os
+import shutil
 
 if __name__ == "__main__":
-    op = sys.argv[1]
+    interface("Hi! what would you like to do?")
+    help()
+    arg = checkinput().split()
+    op = arg[0]
+    new_op_name = arg[1]
     if (op == 'new'):
-        create_op(sys.argv[2])
+        create_op(new_op_name)
     elif (op == 'include'):
         create_include()
     elif (op == 'header'):
