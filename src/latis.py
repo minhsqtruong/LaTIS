@@ -4,9 +4,14 @@ import csv
 import sys
 import time
 import shutil
+import pickle
 from subprocess import call
 from pathlib import Path
 import pyfiglet
+
+#===============================================================================
+#                               Shell helpers
+#===============================================================================
 
 def interface(string):
     os.system("clear")
@@ -20,7 +25,7 @@ def help():
     print("\t new <macro name> <Enter> to write new macro ISA benchmark")
     print("\t print <Enter> to print existing ISA in the benchmark database")
     print("\t help <Enter> to pull up this menu")
-    print("\t exit <Enter> to exit LaTIS")
+    print("\t exit <Enter> to exit child thread or end LaTIS")
     print("\n")
 
 def checkinput():
@@ -35,6 +40,11 @@ def checkinput():
         user_string = checkinput()
     return user_string
 
+
+#===============================================================================
+#                           DB Entry class
+#===============================================================================
+
 class db_entry:
     def __init__(self, index, isa_name, include='default', header='default', footer='default'):
         self.index = index
@@ -44,8 +54,64 @@ class db_entry:
         self.footer = footer
         self.__macro()
 
-    def save_entry():
-        pass
+#---------------------------Macro initiation------------------------------------
+
+    def __chain_testcall(self):
+        self.test_call += self.call + '('
+        for var in self.inputname:
+            self.test_call += var
+            self.test_call += ','
+        self.test_call = self.test_call[:-1]
+        self.test_call += ');'
+
+    def __get_variable(self):
+        try:
+            interface("Ok so your macro name is \'" + self.call +"\' with " + str(self.numinput) + " arguments. List first from last arguments in <type> | <name> | <value> | format.")
+            self.inputname = []
+            self.inputtype = []
+            self.inputval = []
+            self.test_call = ''
+            for i in range(self.numinput):
+                user_string = checkinput().split('|')
+                self.inputtype.append(user_string[0])
+                self.inputname.append(user_string[1])
+                self.inputval.append(user_string[2])
+                self.test_call += user_string[0] + ' ' + user_string[1] + '=' + user_string[2] + ';'
+        except:
+            print("Oops your format is wrong, lets try that again")
+            time.sleep(2)
+            self.__get_variable()
+
+    def __get_call(self):
+        try:
+            interface("""How would a program calls your new macro? For example: my_macro(var1, var2, var3) """)
+            user_string = checkinput()
+            self.call = user_string.split('(')[0]
+            self.numinput = len(user_string.split(','))
+        except:
+            print("Oops your format is wrong, lets try that again")
+            time.sleep(2)
+            self.__get_call()
+
+    def __compile_macro(self):
+        # get new macro
+        include_string = ''
+        if (self.include == 'default'):
+            with open ("../db/include.csv") as db:
+                lines = list(csv.reader(db))
+                include_string = lines[1][1].replace(':','\n');
+                assert lines[1][0] == '0', "Default include index is not 0"
+        else:
+            pass #TODO allow user to pick include string
+
+        test_src = include_string + self.macro +  "int main(void){" + self.test_call + "printf(\"Sucessful compilation from gcc \\n \"); return 0;}"
+        os.system('rm -rf ../tmp/test_src.c')
+        interface('I am going to try to compile your macro')
+        with open("../tmp/test_src.c", "w") as tf:
+            tf.write(test_src)
+        os.system('rm -rf test_src')
+        os.system('gcc -march=native -o test_src ../tmp/test_src.c -O')
+        os.system('./test_src')
 
     def __macro(self):
         # create new macro
@@ -61,59 +127,51 @@ class db_entry:
             call([EDITOR, tf.name])
             tf.seek(0)
 
+        # get new macro
         self.macro = Path('../tmp/macro.tmp').read_text()
 
-        # get new macro
-        include_string = ''
-        if (self.include == 'default'):
-            with open ("../db/include.csv") as db:
-                lines = list(csv.reader(db))
-                include_string = lines[1][1].replace(':','\n');
-                assert lines[1][0] == '0', "Default include index is not 0"
-        else:
-            pass #TODO allow user to pick include string
-
         # get new call
-
-        interface("""How would a program calls your new macro? For example: my_macro(var1, var2, var3) """)
-        user_string = checkinput()
-        self.call = user_string.split('(')[0]
-        self.numinput = len(user_string.split(','))
+        self.__get_call()
 
         # get new input
-        interface("Ok so your macro name is \'" + self.call +"\' with " + str(self.numinput) + " arguments. List first from last arguments in <type> <name> <value> format.")
-        self.inputname = []
-        self.inputtype = []
-        self.inputval = []
-        test_call = ''
-        for i in range(self.numinput):
-            user_string = checkinput().split()
-            self.inputtype.append(user_string[0])
-            self.inputname.append(user_string[1])
-            self.inputval.append(user_string[2])
+        self.__get_variable()
 
-            test_call += user_string[0] + ' ' + user_string[1] + '=' + user_string[2] + ';'
+        self.__chain_testcall()
 
+        # try to compile
+        self.__compile_macro()
 
+        user_string = ''
+        while(user_string != 'none'):
+            print("Would you like to debug anything? <macro> <call> <none>")
+            user_string = checkinput()
+            if (user_string == 'macro'):
+                interface("Ok Let's check your macro file... I am going to take you to vim")
+                time.sleep(1)
+                EDITOR = os.environ.get('EDITOR', 'vim')
+                with open("../tmp/macro.tmp","a+") as tf:
+                    call([EDITOR, tf.name])
+                    tf.seek(0)
 
-        test_call += self.call + '('
-        for var in self.inputname:
-            test_call += var
-            test_call += ','
-        test_call = test_call[:-1]
-        test_call += ');'
+                self.macro = Path('../tmp/macro.tmp').read_text()
+                self.__compile_macro()
 
-        test_src = include_string + self.macro +  "int main(void){" + test_call + "; printf(\"Sucessful compilation from gcc \n \") return 0;};"
-        os.system('rm -rf ../tmp/test_src.c')
-        interface('I am going to try to compile your macro')
-        with open("../tmp/test_src.c", "w") as tf:
-            tf.write(test_src)
-        os.system('gcc -o test_src ../tmp/test_src.c -O')
+            if (user_string == 'call'):
+                self.__get_call()
+                self.__get_variable()
+                self.__chain_testcall()
+                self.__compile_macro()
 
+        interface("Would you like to commit this new entry to isa database? <yes> <no>")
+        user_string = checkinput()
+        if (user_string == 'yes'):
+            self.commit = True
+        elif (user_string == 'no'):
+            self.commit = False
 
-
-
-
+#===============================================================================
+#                           Shell Functions
+#===============================================================================
 
 def create_test(op, num_trials, num_chains):
     pass
@@ -126,19 +184,19 @@ def search_op():
 
 def create_op(op,include='default', header='default', footer='default'):
     current_size = 0
-    with open('../db/isa.csv') as db:
-        #get size of current isa database
-        current_size = db.readlines()[0]
+    object_list = []
+    with open('../db/isa.db', 'rb') as db:
+        object_list = pickle.load(db)
 
-    new_index = int(current_size) + 1
-    new_entry= db_entry(new_index, op, include, header, footer)
-
-
-    # create new variables
-
-    # create new call
-
-
+    current_size = object_list[0]
+    new_index = current_size + 1
+    new_entry = db_entry(new_index, op, include, header, footer)
+    object_list[0] = new_index
+    object_list.append(new_entry)
+    if (new_entry.commit == True):
+        with open('../db/isa.db', 'wb') as db:
+            pickle.dump(object_list, db, pickle.HIGHEST_PROTOCOL)
+    os._exit(0)
 
 def create_include():
     pass
