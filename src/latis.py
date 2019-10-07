@@ -64,7 +64,7 @@ class db_entry:
         self.test_call = self.test_call[:-1]
         self.test_call += ');'
 
-    def __get_variable(self):
+    def __get_variable(self): #TODO make it idiot proof
         try:
             interface("Ok so your macro name is \'" + self.call +"\' with " + str(self.numinput) + " arguments. List first from last arguments in <type> | <name> | <value> | format.")
             self.inputname = []
@@ -78,9 +78,9 @@ class db_entry:
                 self.inputval.append(user_string[2])
                 self.test_call += user_string[0] + ' ' + user_string[1] + '=' + user_string[2] + ';'
         except:
-            print("Oops your format is wrong, lets try that again")
+            interface("Oops...your format is wrong, return to menu now. Idiot proof needed for better feature")
             time.sleep(2)
-            self.__get_variable()
+            os.__exit(0)
 
     def __get_call(self):
         try:
@@ -89,9 +89,9 @@ class db_entry:
             self.call = user_string.split('(')[0]
             self.numinput = len(user_string.split(','))
         except:
-            print("Oops your format is wrong, lets try that again")
+            interface("Oops...your format is wrong, return to menu now. Idiot proof needed for better feature")
             time.sleep(2)
-            self.__get_call()
+            os.__exit(0)
 
     def __compile_macro(self):
         # get new macro
@@ -173,14 +173,24 @@ class db_entry:
 #                           Shell Functions
 #===============================================================================
 
-def create_test(op, num_trials, num_chains):
-    pass
+def search_op(op):
+    interface("Searching...")
+    with open('../db/isa.db', 'rb') as db:
+        object_list = pickle.load(db)
+    for entry in object_list[1:-1]:
+        if(entry.isa_name == op):
+            return True
+    print("ISA not found, type any keys to return to main menu")
+    checkinput()
+    exit(0)
+    return False
 
-def create_test():
-    pass
-
-def search_op():
-    pass
+def create_test(op):
+    for i in range(100):
+        print(op)
+    print("ISA test for " + op + "created, type any keys to return to start")
+    checkinput()
+    exit(0)
 
 def create_op(op,include='default', header='default', footer='default'):
     current_size = 0
@@ -208,4 +218,22 @@ def create_footer():
     pass
 
 def print_database():
-    pass
+    with open('../db/isa.db', 'rb') as db:
+        object_list = pickle.load(db)
+
+    size = object_list[0]
+    print("There are " + str(size) + " instructions in the database")
+    for entry in object_list[1:]:
+        print("="*50)
+        print("Index: " + str(entry.index))
+        print("Name: " + str(entry.isa_name))
+        print("\nMacro: ")
+        print(str(entry.macro))
+        print("\nVariable:")
+        for i in range(entry.numinput):
+            print(entry.inputtype[i] + " " + entry.inputname[i] + " " + entry.inputval[i])
+        print("\nInclude: ")
+        print(str(entry.include))
+    print("="*50)
+    print("Type any keys to return to main menu")
+    user_string = checkinput()

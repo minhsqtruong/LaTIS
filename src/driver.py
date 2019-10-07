@@ -17,17 +17,23 @@ if __name__ == "__main__":
         help()
         arg = checkinput().split()
         op = arg[0]
-        new_op_name = arg[1]
 
         if (op == 'new'):
             newpid = os.fork()
+            new_op_name = arg[1]
             if newpid == 0:
                 create_op(new_op_name)
             pid, status = os.waitpid(newpid, 0)
-
+        elif (op == 'print'):
+            newpid = os.fork()
+            if newpid == 0:
+                print_database()
+            pid, status = os.waitpid(newpid, 0)
         else:
-            print("Error: Option not found")
-            arg = checkinput().split()
+            valid = search_op(op)
+            if (valid):
+                create_test(op)
+
     # if (op == 'new'):
     #     create_op(new_op_name)
     # elif (op == 'include'):
