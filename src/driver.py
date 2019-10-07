@@ -32,7 +32,7 @@ if __name__ == "__main__":
         else:
             valid = search_op(op)
             if (valid):
-                create_test(op)
+                create_test(op, arg[1], arg[2])
 
     # if (op == 'new'):
     #     create_op(new_op_name)

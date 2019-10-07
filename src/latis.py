@@ -21,7 +21,7 @@ def interface(string):
     print(string)
 
 def help():
-    print("\n \t <macro name> <Enter> to execute benchmark on old macro")
+    print("\n \t <macro name> <num chains> <num trials> <Enter> to execute benchmark on old macro")
     print("\t new <macro name> <Enter> to write new macro ISA benchmark")
     print("\t print <Enter> to print existing ISA in the benchmark database")
     print("\t help <Enter> to pull up this menu")
@@ -185,10 +185,55 @@ def search_op(op):
     exit(0)
     return False
 
-def create_test(op):
-    for i in range(100):
-        print(op)
-    print("ISA test for " + op + "created, type any keys to return to start")
+def create_test(op, num_chains, num_trials):
+
+    isa = 0
+    with open('../db/isa.db', 'rb') as db:
+        object_list = pickle.load(db)
+    for entry in object_list[1:-1]:
+        if(entry.isa_name == op):
+            isa = entry
+
+    with open ("../db/include.csv") as db:
+        lines = db.readlines()
+        include_string = lines[1].replace('$','\n');
+
+    with open ("../db/header.csv") as db:
+        lines = db.readlines()
+        header_string = lines[1].replace('$','\n');
+
+    with open ("../db/footer.csv") as db:
+        lines = db.readlines()
+        footer_string = lines[1].replace('$','\n');
+
+    os.system('rm -rf ../run/op')
+    file_name = '../run/' + op + '/' + num_chains + '.c'
+    os.system('mkdir ../run/' + op)
+    os.system('rm -rf' + file_name)
+    f = open(file_name, 'w+')
+    f.write(include_string)
+    f.write(isa.macro)
+    f.write(header_string)
+    input_string = ""
+    call_string = ""
+    for chain in range(int(num_chains)):
+        call_string += isa.call + "("
+        for i in range(isa.numinput):
+            call_string += isa.inputname[i].split()[0] + str(chain) + ',' #TODO stop spliting
+            input_string += entry.inputtype[i] + " " + entry.inputname[i].split()[0] + str(chain) + "=" + entry.inputval[i] + ";\n" #TODO stop spliting
+        call_string = call_string[:-2]
+        call_string += ");\n"
+    f.write(input_string)
+    f.write("start = rdtsc(); \n")
+    for trial in range(int(num_trials)):
+        f.write(call_string)
+    f.write("end = rdtsc(); \n")
+    f.write("float cycles = (float) (end - start);\n")
+    f.write("printf(\""+ "With " + str(num_chains) + " chains :%f\\n \", cycles);")
+    f.write(footer_string)
+    f.close()
+
+    print("ISA test for " + op + " created, type any keys to return to start")
     checkinput()
     exit(0)
 
