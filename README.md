@@ -1,13 +1,13 @@
 # Latency, Througput Instruction Set (LaTIS) Benchmark for x86
 This project provides a simple interface to benchmark/add new benchmark suite for x86 instruction set.
 It gives programmers rough estimate of latency and throughput of a particular machine that can be helpful
-to develop optimzed kernel for high performance computing.
+to develop optimized kernel for high performance computing.
 
 ### Basic Idea
 In order to write a high performance kernel, programmers need to know basic parameters of the hardware such as how many
 functional units are available, or how long do those units take to service a request. This benchmark creates chains of 
 dependent instructions to exhaust the latency of those functional units, while at the same time iteratively increases
-the number of independent chains to see how many units are there. This simple routine allows programmer to estimate 
+the number of independent chains to see how many units there are. This simple routine allows programmer to estimate 
 the latency and throughput of the kernel. Following images illustrate the benchmark.
 
 
