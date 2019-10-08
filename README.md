@@ -25,7 +25,7 @@ python3 ./src/driver.py #further instruction is incorperated in the shell.
 ```
 
 ### Things still need to be done
-* Write a script that automatized the benchmark. Write now the executables are made but are not run.
+* Write a script that automatized the benchmark. Right now the executables are made but are not run.
 * Add basic ISA to the database.
 * Run benchmark on known system.
 * Write a script to visualize the spike in throughput benchmark.
