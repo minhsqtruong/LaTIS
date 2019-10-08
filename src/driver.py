@@ -5,6 +5,7 @@ from latis import create_include
 from latis import create_header
 from latis import create_footer
 from latis import print_database
+from latis import purge_database
 from latis import interface, help, checkinput
 import pyfiglet
 import sys
@@ -19,8 +20,8 @@ if __name__ == "__main__":
         op = arg[0]
 
         if (op == 'new'):
-            newpid = os.fork()
             new_op_name = arg[1]
+            newpid = os.fork()
             if newpid == 0:
                 create_op(new_op_name)
             pid, status = os.waitpid(newpid, 0)
@@ -29,26 +30,16 @@ if __name__ == "__main__":
             if newpid == 0:
                 print_database()
             pid, status = os.waitpid(newpid, 0)
+        elif (op == 'purge'):
+            newpid = os.fork()
+            if newpid == 0:
+                purge_database()
+            pid, status = os.waitpid(newpid, 0)
         else:
             valid = search_op(op)
             if (valid):
-                create_test(op, arg[1], arg[2])
-
-    # if (op == 'new'):
-    #     create_op(new_op_name)
-    # elif (op == 'include'):
-    #     create_include()
-    # elif (op == 'header'):
-    #     create_header()
-    # elif (op == 'footer'):
-    #     create_footer()
-    # elif (op == 'print'):
-    #     print_database()
-    # else:
-    #     entry = search_op(op)
-    #
-    # if (entry == 0):
-    #     print("Error: operation not found in database, specify <op> = 'new' to add new operation")
-    # else:
-    #     for num_chains in range(1,int(max_module)):
-    #         op = create_test(op)
+                os.system('rm -rf ../run/' + op)
+                for chain in range(1,int(arg[1])):
+                    print("Creating " + str(chain) + "chains")
+                    create_test(op, chain, arg[2])
+            exit(0)

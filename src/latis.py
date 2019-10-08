@@ -25,6 +25,7 @@ def help():
     print("\t new <macro name> <Enter> to write new macro ISA benchmark")
     print("\t print <Enter> to print existing ISA in the benchmark database")
     print("\t help <Enter> to pull up this menu")
+    print("\t purge <Enter> to delete the entire database")
     print("\t exit <Enter> to exit child thread or end LaTIS")
     print("\n")
 
@@ -73,9 +74,9 @@ class db_entry:
             self.test_call = ''
             for i in range(self.numinput):
                 user_string = checkinput().split('|')
-                self.inputtype.append(user_string[0])
-                self.inputname.append(user_string[1])
-                self.inputval.append(user_string[2])
+                self.inputtype.append(user_string[0].replace(' ', ''))
+                self.inputname.append(user_string[1].replace(' ', ''))
+                self.inputval.append(user_string[2].replace(' ', ''))
                 self.test_call += user_string[0] + ' ' + user_string[1] + '=' + user_string[2] + ';'
         except:
             interface("Oops...your format is wrong, return to menu now. Idiot proof needed for better feature")
@@ -98,9 +99,8 @@ class db_entry:
         include_string = ''
         if (self.include == 'default'):
             with open ("../db/include.csv") as db:
-                lines = list(csv.reader(db))
-                include_string = lines[1][1].replace(':','\n');
-                assert lines[1][0] == '0', "Default include index is not 0"
+                lines = db.readlines()
+                include_string = lines[1].replace('$','\n');
         else:
             pass #TODO allow user to pick include string
 
@@ -116,7 +116,7 @@ class db_entry:
     def __macro(self):
         # create new macro
         interface("Ok Let's define a new macro... I am going to take you to vim")
-        time.sleep(3)
+        time.sleep(2)
         EDITOR = os.environ.get('EDITOR', 'vim')
         initial_message = 'Please write your macro in this tmp file (Remember to delete me)'
         macro_message = ''
@@ -177,20 +177,21 @@ def search_op(op):
     interface("Searching...")
     with open('../db/isa.db', 'rb') as db:
         object_list = pickle.load(db)
-    for entry in object_list[1:-1]:
+    object_list.pop(0)
+    for entry in object_list:
         if(entry.isa_name == op):
             return True
     print("ISA not found, type any keys to return to main menu")
     checkinput()
-    exit(0)
     return False
 
 def create_test(op, num_chains, num_trials):
-
+    num_chains = str(num_chains)
     isa = 0
     with open('../db/isa.db', 'rb') as db:
         object_list = pickle.load(db)
-    for entry in object_list[1:-1]:
+    object_list.pop(0)
+    for entry in object_list:
         if(entry.isa_name == op):
             isa = entry
 
@@ -206,10 +207,10 @@ def create_test(op, num_chains, num_trials):
         lines = db.readlines()
         footer_string = lines[1].replace('$','\n');
 
-    os.system('rm -rf ../run/op')
     file_name = '../run/' + op + '/' + num_chains + '.c'
-    os.system('mkdir ../run/' + op)
     os.system('rm -rf' + file_name)
+    os.system('mkdir ../run/' + op)
+    os.system('touch ' + file_name)
     f = open(file_name, 'w+')
     f.write(include_string)
     f.write(isa.macro)
@@ -219,9 +220,9 @@ def create_test(op, num_chains, num_trials):
     for chain in range(int(num_chains)):
         call_string += isa.call + "("
         for i in range(isa.numinput):
-            call_string += isa.inputname[i].split()[0] + str(chain) + ',' #TODO stop spliting
-            input_string += entry.inputtype[i] + " " + entry.inputname[i].split()[0] + str(chain) + "=" + entry.inputval[i] + ";\n" #TODO stop spliting
-        call_string = call_string[:-2]
+            call_string += isa.inputname[i] + str(chain) + ','
+            input_string += entry.inputtype[i] + " " + entry.inputname[i] + str(chain) + "=" + entry.inputval[i] + ";\n"
+        call_string = call_string[:-1]
         call_string += ");\n"
     f.write(input_string)
     f.write("start = rdtsc(); \n")
@@ -232,10 +233,7 @@ def create_test(op, num_chains, num_trials):
     f.write("printf(\""+ "With " + str(num_chains) + " chains :%f\\n \", cycles);")
     f.write(footer_string)
     f.close()
-
-    print("ISA test for " + op + " created, type any keys to return to start")
-    checkinput()
-    exit(0)
+    os.system('gcc -O -march=native -o ../run/' + op + '/' + num_chains + '.o ' + file_name)
 
 def create_op(op,include='default', header='default', footer='default'):
     current_size = 0
@@ -261,6 +259,17 @@ def create_header():
 
 def create_footer():
     pass
+
+def purge_database():
+    interface("Are you sure you want to purge the database? <yes> <no>")
+    user_string = checkinput().split()[0]
+    if (user_string == 'yes'):
+        os.system('rm -rf ../db/isa.db')
+        os.system('touch ../db/isa.db')
+        object_list = [0]
+        with open('../db/isa.db', 'wb') as db:
+            pickle.dump(object_list, db, pickle.HIGHEST_PROTOCOL)
+        os._exit(0)
 
 def print_database():
     with open('../db/isa.db', 'rb') as db:
