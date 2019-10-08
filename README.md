@@ -11,11 +11,13 @@ the number of independent chains to see how many units are there. This simple ro
 the latency and throughput of the kernel. Following images illustrate the benchmark.
 
 
-![Latency: 1 chain of dependent instructions prevent multiple functional units to compute the program, forcing 1 unit to run the program by itself](img/latency.png)
+![](img/latency.png)
 
-![Throughput: up to 4 independent chains of depedent instructions can be executed at the same time. Therefore, there will be a sharp performance drop when computing the fifth chain. We detect this drop to determine the throughput of the program](img/throughput.png)
+Latency: 1 chain of dependent instructions prevent multiple functional units to compute the program, forcing 1 unit to run the program by itself
 
+![](img/throughput.png)
 
+Throughput: up to 4 independent chains of depedent instructions can be executed at the same time. Therefore, there will be a sharp performance drop when computing the fifth chain. We detect this drop to determine the throughput of the program
 
 ### How to run
 ```
